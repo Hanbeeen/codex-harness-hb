@@ -1,0 +1,2 @@
+# 줄바꿈을 LF 로 고정한다. 셸 스크립트가 CRLF 로 풀리면 sh 에서 실행이 깨진다
+* text=auto eol=lf

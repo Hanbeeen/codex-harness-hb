@@ -1,0 +1,26 @@
+# install.sh 가 등록하는 외부 plugin 목록
+#
+# 형식: 이름  플러그인@마켓플레이스  종류  출처  조건
+#   이름     요약에 쓰는 이름. 같은 이름의 줄은 붙여 쓰고, 위에서부터 시도해 처음 성공한 것 하나만 설치함
+#   종류     builtin      Codex 에 이미 있는 마켓플레이스. 출처는 -
+#            marketplace  마켓플레이스 레포. git 이 있으면 git 주소로 등록하고, 없으면 GitHub tarball 을 받아 로컬로 등록함
+#            plugin       plugin 레포 하나. tarball 을 받아 하네스가 만든 로컬 마켓플레이스(harness-ext)에 넣어 등록함
+#            detect       설치하지 않음. 이미 설치돼 있으면 이 묶음을 설치된 것으로 보는 데만 씀. 출처는 -
+#   출처     git 주소. 끝에 #<ref> 를 붙이면 그 ref 를 받음(없으면 기본 브랜치)
+#   조건     - 또는 쉼표로 묶은 node, chrome, git. 못 채우면 그 줄을 건너뜀
+#
+# superpowers 는 Codex 기본 마켓플레이스(openai-curated)를 먼저 씀. 로그인 전이라 목록이 비어 있으면 다음 줄로 넘어감.
+# claude-plugins-official 의 superpowers 는 plugin 원본을 다시 git clone 하므로 git 이 있을 때만 씀.
+# claude-plugins-official 의 chrome-devtools-mcp 는 Codex 0.164.0 에서 설치되지 않음(원본 plugin.json 이름이 chrome-devtools).
+# 그래서 원본 레포를 harness-ext 로 감싸 설치하고, 예전에 설치한 것은 detect 줄로 알아봄.
+
+superpowers             superpowers@openai-curated                  builtin      -                                                       -
+superpowers             superpowers@claude-plugins-official         marketplace  https://github.com/anthropics/claude-plugins-official.git   git
+superpowers             superpowers@harness-ext                     plugin       https://github.com/obra/superpowers.git                 -
+andrej-karpathy-skills  andrej-karpathy-skills@karpathy-skills      marketplace  https://github.com/forrestchang/andrej-karpathy-skills.git  -
+code-simplifier         code-simplifier@claude-plugins-official     marketplace  https://github.com/anthropics/claude-plugins-official.git   -
+frontend-design         frontend-design@claude-plugins-official     marketplace  https://github.com/anthropics/claude-plugins-official.git   -
+skill-creator           skill-creator@claude-plugins-official       marketplace  https://github.com/anthropics/claude-plugins-official.git   -
+context7                context7@claude-plugins-official            marketplace  https://github.com/anthropics/claude-plugins-official.git   node
+chrome-devtools-mcp     chrome-devtools-mcp@claude-plugins-official detect       -                                                       -
+chrome-devtools-mcp     chrome-devtools@harness-ext                 plugin       https://github.com/ChromeDevTools/chrome-devtools-mcp.git  node,chrome

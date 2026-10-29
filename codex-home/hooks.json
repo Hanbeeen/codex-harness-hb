@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'cat \"${CODEX_HOME:-$HOME/.codex}/harness/reminder.json\" 2>/dev/null || true'",
+            "commandWindows": "cmd /d /c type \"%USERPROFILE%\\.codex\\harness\\reminder.json\"",
+            "timeout": 10,
+            "additionalContextLimit": 0
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+/**
+ * commit-msg: 커밋 메시지 표기 규칙 자동 검사.
+ *
+ * 근거: commit 스킬 (개조식, 분량, AI 표시 금지)
+ *       ~/.codex/AGENTS.md Style (em-dash, 가운뎃점 금지, 마크다운 렌더 사고 방지)
+ *
+ * 규칙 문서에만 적혀 있으면 사람도 에이전트도 그냥 어긴다. 이 훅이 게이트다.
+ * 오탐이면 `git commit --no-verify` 로 통과.
+ */
+'use strict';
+const fs = require('fs');
+
+const path = process.argv[2];
+const raw = fs.readFileSync(path, 'utf8');
+
+// git 이 붙이는 주석, verbose diff 는 메시지가 아니다.
+const lines = raw
+  .split(/\r?\n/)
+  .slice(0, (raw.split(/\r?\n/).findIndex((l) => /^# -+ >8 -+$/.test(l)) + 1) || undefined)
+  .filter((l) => !l.startsWith('#'));
+while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+
+const subject = lines[0] || '';
+const body = lines.slice(1);
+const text = lines.join('\n');
+
+// 자동 생성 메시지, squash 예약분은 검사 대상이 아니다.
+const SKIP = /^(Merge |Revert |fixup!|squash!|amend!)/;
+if (!subject.trim() || SKIP.test(subject)) process.exit(0);
+
+const errors = [];
+const warns = [];
+const add = (list, rule, line, why) => list.push({ rule, line, why });
+
+// ── 1) 제목 형식 ────────────────────────────────────────────────
+const TYPES = 'feat|fix|docs|refactor|test|chore|style|build|ci|perf';
+const SUBJECT_RE = /^(feat|fix|docs|refactor|test|chore|style|build|ci|perf)(\([^)]+\))?: .+/;
+if (!SUBJECT_RE.test(subject)) {
+  add(errors, '제목 형식', subject, `\`<type>(<scope>): <요약>\` 형태여야 함 (type: ${TYPES})`);
+}
+if (subject.length > 60) add(errors, '제목 길이', subject, `${subject.length}자 (상한 60)`);
+if (/\.$/.test(subject)) add(errors, '제목 마침표', subject, '제목 끝에 마침표를 붙이지 않음');
+
+// ── 2) 개조식: 서술형 종결 금지 ─────────────────────────────────
+// 인용부호, 백틱 안은 남의 말이라 검사 대상에서 뺀다.
+const strip = (s) => s.replace(/`[^`]*`/g, '').replace(/"[^"]*"/g, '').replace(/'[^']*'/g, '');
+
+// ⚠ '요' 로 끝난다는 것만으로 잡으면 안 된다. '불필요, 필요, 중요, 주요, 소요, 수요' 는 명사이고
+//   개조식에서 정상으로 쓰인다. 종전 규칙이 이것들을 서술형으로 오판해 정당한 메시지를 막았고
+//   (2026-08-27 실제로 두 번), 그 경험은 `--no-verify` 를 습관으로 만들어 게이트 자체를 무력화한다.
+//   오탐과 미탐 중 이 훅에서 더 나쁜 것은 오탐이다: 미탐은 스타일 하나가 새지만, 오탐은 검사를
+//   통째로 우회하게 만든다.
+//   그래서 '요' 는 해요체 종결어미를 이루는 앞글자와 함께일 때만 잡는다(해요, 예요, 에요, 어요, 
+//   아요, 네요, 세요, 지요, 나요, 까요, 군요). '다', '죠' 는 그대로 둔다: 그 소리로 끝나는 명사가
+//   실질적으로 없어 오탐 여지가 없다.
+const POLITE_ENDING = '해예에어아네세지나까군';
+const DESC_END = new RegExp(`(?:[가-힣]다|[가-힣]죠|[${POLITE_ENDING}]요)\\.?$`);
+lines.forEach((line) => {
+  const s = strip(line).trimEnd();
+  if (DESC_END.test(s) || /[가-힣]다\.\s/.test(s)) {
+    add(errors, '서술형 종결', line, '명사형(~함/~됨/~임/명사)으로. 배경 단락도 예외 없음');
+  }
+});
+
+// ── 3) 금지 문자 ────────────────────────────────────────────────
+lines.forEach((line) => {
+  if (line.includes('\u2014')) add(errors, 'em-dash', line, '마침표, 쉼표, 콜론, 괄호로 대체');
+  // 가운뎃점(U+00B7)과 비슷한 모양(U+30FB, U+2219). 백틱 안은 이미 등록된 외부 이름 인용이라 뺀다
+  // (예: 외부 서비스에 등록된 속성명). 막으면 `--no-verify` 습관이 생겨 위 2) 의 오탐 사고가 되풀이된다
+  if (/[\u00B7\u30FB\u2219]/.test(line.replace(/`[^`]*`/g, ''))) {
+    add(errors, '가운뎃점', line, '셋 이상 나열은 쉼표, 짝인 두 항목은 슬래시로 대체');
+  }
+  // 마크다운 렌더 사고: 한 줄 안 물결표 2개 = 취소선, 백틱 밖 별표 쌍 = 강조
+  if ((line.match(/~/g) || []).length >= 2) add(errors, '취소선 위험', line, '물결표 쌍 사이가 그어짐');
+  const bare = line.replace(/`[^`]*`/g, '');
+  if ((bare.match(/\*/g) || []).length >= 2) add(errors, '강조 위험', line, '백틱 밖 별표 쌍이 굵게/기울임으로 바뀜');
+});
+
+// ── 4) AI 표시/서명 금지 ────────────────────────────────────────
+const AI = /Co-Authored-By|Generated with|Claude Code|Anthropic|🤖/i;
+lines.forEach((line) => { if (AI.test(line)) add(errors, 'AI 표시', line, '서명, trailer, footer 금지'); });
+
+// ── 5) 분량 ─────────────────────────────────────────────────────
+const bodyContent = body.filter((l) => l.trim() !== '');
+if (lines.length > 23) add(errors, '전체 분량', `${lines.length}줄`, '상한 23줄. 커밋 분리 신호');
+if (bodyContent.length > 17) add(errors, '본문 분량', `${bodyContent.length}줄`, '상한 17줄(빈 줄 제외)');
+// 한글은 터미널, IDE 커밋 패널에서 두 칸을 차지한다. 문자 수로 재면 같은 상한이 한국어 줄에는
+// 너무 빡빡하고(50자면 이미 폭 100) 영문 줄에는 헐거워, 한글 섞인 정상 메시지가 매번 경고에 걸렸다.
+// 글로벌 룰의 두 기준(한국어 약 50자/영문 72자)을 하나로 맞추는 척도가 표시 폭이다.
+const WIDE = /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/;
+const displayWidth = (s) => [...s].reduce((n, ch) => n + (WIDE.test(ch) ? 2 : 1), 0);
+const WIDTH_LIMIT = 100;   // 한국어 50자 = 폭 100. 영문 72자(폭 72)도 이 안에 든다
+lines.forEach((line) => {
+  const w = displayWidth(line);
+  if (w > WIDTH_LIMIT) add(warns, '줄 폭', line, `표시 폭 ${w} (상한 ${WIDTH_LIMIT} = 한국어 약 50자)`);
+});
+
+// ── 출력 ────────────────────────────────────────────────────────
+const fmt = (e) => `  [${e.rule}] ${e.why}\n      ${e.line}`;
+if (warns.length) {
+  process.stderr.write(`\n경고 ${warns.length}건 (통과)\n${warns.map(fmt).join('\n')}\n`);
+}
+if (errors.length) {
+  process.stderr.write(`\n커밋 메시지 규칙 위반 ${errors.length}건\n${errors.map(fmt).join('\n')}\n`);
+  process.stderr.write('\n오탐이면 `git commit --no-verify` 로 통과.\n\n');
+  process.exit(1);
+}
+process.exit(0);

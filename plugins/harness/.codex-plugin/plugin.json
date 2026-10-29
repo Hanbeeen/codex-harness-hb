@@ -1,0 +1,30 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "description": "개발 작업용 스킬 묶음: commit, check, pr-draft, patchnote. recommit, qa 는 node 가 있을 때 install.sh 가 따로 설치",
+  "author": {
+    "name": "Hanbeeen",
+    "url": "https://github.com/Hanbeeen"
+  },
+  "homepage": "https://github.com/Hanbeeen/codex-harness-hb",
+  "repository": "https://github.com/Hanbeeen/codex-harness-hb",
+  "license": "MIT",
+  "keywords": [
+    "commit",
+    "review",
+    "qa",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Harness",
+    "shortDescription": "커밋, 점검, PR 초안, 패치노트 스킬",
+    "developerName": "Hanbeeen",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ]
+  }
+}
