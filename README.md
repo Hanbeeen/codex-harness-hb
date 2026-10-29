@@ -1,4 +1,4 @@
-> **Codex 에게**: 이 레포 설치를 요청받으면 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
+> **Codex 에게**: 이 레포 설치를 요청받으면 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
 > 네트워크나 홈 폴더(`~/.codex`) 쓰기가 막혀 실패하면 권한 상승을 요청해 같은 명령을 다시 실행한다. 설치 단계를 나눠 직접 수행하지 않는다.
 > 출력 마지막의 `==== 하네스 설치 요약` 블록을 고치지 말고 사용자에게 그대로 전한다.
 > 출력에 `MERGE_NEEDED <경로>` 줄이 있을 때만 아래 '훅 병합 기준' 대로 그 파일을 직접 합친다. 다른 파일은 손대지 않는다.
@@ -16,7 +16,7 @@ Codex CLI 용 개발 작업 하네스. 전역 지침, 스킬, 매 턴 리마인�
 | 스킬 recommit, qa(qa 엔진 포함) | `~/.agents/skills/` | node 가 있을 때 |
 | 리마인더 훅(UserPromptSubmit) | `~/.codex/hooks.json` | 파일이 없을 때 배치. 있으면 `MERGE_NEEDED` |
 | 외부 plugin: superpowers, andrej-karpathy-skills, frontend-design | Codex plugin | 항상(실패하면 건너뜀) |
-| 외부 plugin: context7(원격 MCP) | Codex plugin | 항상. 쓰려면 `codex mcp login context7` |
+| 외부 plugin: context7(원격 MCP) | Codex plugin | 항상. 로그인 없이 동작하고, 사용량 한도를 늘릴 때만 `codex mcp login context7` |
 | 외부 plugin: chrome-devtools-mcp | Codex plugin | node 와 Chrome 이 있을 때. 화면 없는 Linux 서버면 `--headless` 로 띄움 |
 | code-simplifier 역할 에이전트 | `~/.codex/agents/code-simplifier.toml` | 항상 |
 | qa 에이전트 | `~/.codex/agents/qa-*.toml` | node 가 있을 때 |

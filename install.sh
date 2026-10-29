@@ -2,8 +2,8 @@
 # Codex 하네스 설치 스크립트 (POSIX sh)
 #
 # 사용
-#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh -s -- --name <호칭>
+#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh -s -- --name <호칭>
 # 옵션
 #   --dry           바꿀 내용만 보여 주고 아무것도 바꾸지 않음
 #   --name <호칭>    전역 지침의 호칭 자리에 넣을 이름('님' 은 붙이지 않음). 빈 값이면 호칭 없이 씀.
@@ -18,7 +18,7 @@
 set -u
 
 REPO_SLUG='Hanbeeen/codex-harness-hb'
-REPO_TAG='v0.1.1'
+REPO_TAG='v0.1.2'
 MIN_CODEX='0.164.0'
 HOOK_NAMES='applypatch-msg pre-applypatch post-applypatch pre-commit pre-merge-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push pre-auto-gc post-rewrite sendemail-validate push-to-checkout pre-receive update post-receive post-update reference-transaction post-index-change'
 
@@ -570,10 +570,6 @@ install_external() {
     fi
   done < "$_list"
   ext_finish_group
-  # 원격 MCP(context7)는 로그인해야 쓸 수 있다
-  if ! is_dry && codex mcp list </dev/null 2>/dev/null | grep -q '^context7[[:space:]].*Not logged in'; then
-    add_note "context7 은 로그인해야 쓸 수 있음: codex mcp login context7"
-  fi
   return 0
 }
 
