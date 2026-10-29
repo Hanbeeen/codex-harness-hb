@@ -304,3 +304,14 @@
 ### 캘리브레이션
 
 - **룰을 고친다, 응답만 고치지 않는다**: 위 룰이 안 지켜졌다고 지적받으면 그 응답만 수정하지 말고 룰/훅 자체의 수정안을 함께 올린다. 개별 결과만 고치면 다음 턴에 또 재발한다. 사람의 역할은 개별 결과의 검증자가 아니라 구조적 패턴의 발견자다.
+
+## Codex: 스킬 우선 사용
+
+Codex 에서는 세션을 시작할 때 '먼저 스킬을 써라' 는 지시가 따로 실리지 않는다. 작업을 시작하기 전에 사용 가능한 스킬 목록을 보고, 맞는 스킬이 있으면 그 SKILL.md 를 먼저 읽고 따른다.
+
+- 새 기능, 설계, 기획: `superpowers:brainstorming`, 그다음 `superpowers:writing-plans`
+- 버그, 실패한 테스트: `superpowers:systematic-debugging`
+- 구현: `superpowers:test-driven-development`
+- 완료를 보고하기 전: `superpowers:verification-before-completion`
+- 코드 정리: `code-simplifier` 역할 에이전트(`~/.codex/agents/code-simplifier.toml`)
+- 이 지침의 `/commit`, `/check`, `/pr-draft`, `/patchnote` 는 `harness:` 스킬을, `/recommit`, `/qa` 는 같은 이름의 사용자 스킬(node 가 있을 때 설치)을 가리킨다

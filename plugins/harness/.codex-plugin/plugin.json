@@ -1,6 +1,6 @@
 {
   "name": "harness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "개발 작업용 스킬 묶음: commit, check, pr-draft, patchnote. recommit, qa 는 node 가 있을 때 install.sh 가 따로 설치",
   "author": {
     "name": "Hanbeeen",

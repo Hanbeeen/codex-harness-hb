@@ -2,8 +2,8 @@
 # Codex 하네스 설치 스크립트 (POSIX sh)
 #
 # 사용
-#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.0/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.0/install.sh | sh -s -- --name <호칭>
+#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh -s -- --name <호칭>
 # 옵션
 #   --dry           바꿀 내용만 보여 주고 아무것도 바꾸지 않음
 #   --name <호칭>    전역 지침의 호칭 자리에 넣을 이름('님' 은 붙이지 않음). 빈 값이면 호칭 없이 씀.
@@ -18,9 +18,8 @@
 set -u
 
 REPO_SLUG='Hanbeeen/codex-harness-hb'
-REPO_TAG='v0.1.0'
+REPO_TAG='v0.1.1'
 MIN_CODEX='0.164.0'
-DOC_BYTES=65536
 HOOK_NAMES='applypatch-msg pre-applypatch post-applypatch pre-commit pre-merge-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push pre-auto-gc post-rewrite sendemail-validate push-to-checkout pre-receive update post-receive post-update reference-transaction post-index-change'
 
 CODEX_DIR=${CODEX_HOME:-$HOME/.codex}
@@ -434,6 +433,25 @@ fetch_github_tarball() { # git주소 ref 대상폴더
   info "tarball 받음: $_url"
 }
 
+# 화면이 없는 Linux 서버면 chrome-devtools-mcp 를 --headless 로 띄우도록 plugin 의 MCP 설정을 고친다.
+# 기본 설정은 화면 있는 Chrome 을 띄워 DISPLAY 가 없는 서버에서 실패한다
+patch_headless() { # plugin폴더
+  { [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; } || return 0
+  [ "$(uname -s 2>/dev/null)" = Linux ] || return 0
+  for _m in "$1/mcp.json" "$1/.mcp.json"; do
+    [ -f "$_m" ] || continue
+    grep -q 'chrome-devtools-mcp@' "$_m" || continue
+    grep -q '"--headless"' "$_m" && continue
+    sed 's|"\(chrome-devtools-mcp@[^"]*\)"|"\1", "--headless"|' "$_m" > "$_m.harness-tmp"
+    if grep -q '"--headless"' "$_m.harness-tmp"; then
+      mv -f "$_m.harness-tmp" "$_m" && info "화면 없는 서버라 Chrome 을 --headless 로 띄우게 설정: $_m"
+    else
+      rm -f "$_m.harness-tmp"
+      add_note "chrome-devtools-mcp 설정 형식이 예상과 달라 --headless 를 넣지 못함: $_m"
+    fi
+  done
+}
+
 # harness-ext 같은 감싼 마켓플레이스의 목록 파일을 plugins/ 아래 폴더로 다시 쓴다
 write_wrapper_manifest() { # 폴더 이름
   mkdir -p "$1/.agents/plugins" || return 1
@@ -483,6 +501,7 @@ ensure_marketplace() { # 종류 마켓플레이스 출처 plugin이름
         mkdir -p "$_dir/plugins" || { FAIL_REASON="폴더를 만들지 못함: $_dir"; return 1; }
         fetch_github_tarball "$_src" "$_ref" "$_dir/plugins/$_pname" || return 1
       fi
+      patch_headless "$_dir/plugins/$_pname"
       write_wrapper_manifest "$_dir" "$_mkt" || { FAIL_REASON="목록 파일을 쓰지 못함: $_dir"; return 1; }
       if ! mkt_configured "$_mkt"; then
         codex plugin marketplace add "$_dir" </dev/null >"$WORK/out" 2>&1 \
@@ -551,79 +570,40 @@ install_external() {
     fi
   done < "$_list"
   ext_finish_group
+  # 원격 MCP(context7)는 로그인해야 쓸 수 있다
+  if ! is_dry && codex mcp list </dev/null 2>/dev/null | grep -q '^context7[[:space:]].*Not logged in'; then
+    add_note "context7 은 로그인해야 쓸 수 있음: codex mcp login context7"
+  fi
   return 0
-}
-
-# ---------------------------------------------------------------- config.toml
-
-# 첫 table 앞의 project_doc_max_bytes 줄 번호와 값을 "줄 값" 으로 출력한다
-doc_bytes_info() {
-  [ -f "$CFG" ] || return 0
-  # 줄 전체가 [..] 인 것만 table 머리로 본다. 여러 줄 배열의 요소 줄(  ["a"],)은 머리가 아니다
-  awk '
-    /^[[:space:]]*\[\[?[^]]*\]\]?[[:space:]]*(#.*)?$/ { exit }
-    /^[[:space:]]*project_doc_max_bytes[[:space:]]*=/ {
-      v = $0; sub(/^[^=]*=[[:space:]]*/, "", v); sub(/[[:space:]]*#.*$/, "", v); sub(/[[:space:]]+$/, "", v)
-      print NR " " v; exit }' "$CFG"
-}
-
-install_config() {
-  step "설정 (config.toml)"
-  _info=$(doc_bytes_info)
-  if [ -n "$_info" ]; then
-    _ln=${_info%% *} _val=${_info#* }
-    _num=$(printf '%s' "$_val" | tr -d '_')
-    case $_num in ''|*[!0-9]*) add_skip "project_doc_max_bytes" "기존 값을 읽지 못함($_val)"; return 0 ;; esac
-    if [ "$_num" -ge "$DOC_BYTES" ]; then add_same "project_doc_max_bytes = $_val"; return 0; fi
-    # 되돌릴 때 원래 표기(밑줄 포함)를 그대로 쓰도록 읽은 값을 남긴다
-    _prev=$_val
-  else
-    _ln=0 _prev=absent
-  fi
-  add_done "project_doc_max_bytes = $DOC_BYTES (이전: $_prev)"
-  is_dry && return 0
-  mkdir -p "$STATE" "$CODEX_DIR" || die "폴더를 만들지 못함: $CODEX_DIR"
-  [ -f "$STATE/doc-bytes.prev" ] || printf '%s\n' "$_prev" > "$STATE/doc-bytes.prev"
-  if [ -f "$CFG" ]; then
-    backup_copy config.toml "$CFG"
-    if [ "$_ln" -gt 0 ]; then
-      awk -v n="$_ln" -v t="$DOC_BYTES" 'NR == n { sub(/=.*/, "= " t) } { print }' "$CFG" > "$WORK/config.toml"
-    else
-      awk -v t="$DOC_BYTES" '
-        !done && /^[[:space:]]*\[\[?[^]]*\]\]?[[:space:]]*(#.*)?$/ { print "project_doc_max_bytes = " t; print ""; done = 1 }
-        { print }
-        END { if (!done) print "project_doc_max_bytes = " t }' "$CFG" > "$WORK/config.toml"
-    fi
-    cat "$WORK/config.toml" > "$CFG" || die "config.toml 을 쓰지 못함"
-  else
-    printf 'project_doc_max_bytes = %s\n' "$DOC_BYTES" > "$CFG" || die "config.toml 을 쓰지 못함"
-  fi
 }
 
 # ---------------------------------------------------------------- node 가 필요한 것
 
-install_qa_agents() {
-  step "qa 에이전트"
-  [ "$HAVE_NODE" = 1 ] || { add_skip "qa 에이전트" "node 없음"; return 0; }
+install_agents() {
+  step "에이전트 역할 (~/.codex/agents)"
+  # qa 역할은 qa 엔진(node)을 쓰므로 node 가 있을 때만 둔다. 나머지 역할(code-simplifier 등)은 항상 둔다
+  [ "$HAVE_NODE" = 1 ] || add_skip "qa 에이전트" "node 없음"
   _n=0 _changed=0
   : > "$WORK/agents"
   for _f in "$SRC_ROOT"/codex-home/agents/*.toml; do
     [ -f "$_f" ] || continue
     _b=$(basename "$_f")
+    case $_b in qa-*) [ "$HAVE_NODE" = 1 ] || continue ;; esac
     printf 'agents/%s\n' "$_b" >> "$WORK/agents"
     place_managed "agents/$_b" "$_f" "$CODEX_DIR/agents/$_b"
     _n=$((_n + 1))
     [ "$PLACED" = same ] || _changed=$((_changed + 1))
   done
-  # 지난 버전에만 있던 에이전트를 걷어 낸다
+  # 지난 버전에만 있던 에이전트를 걷어 낸다. node 가 없어 이번에 건너뛴 qa 역할은 지우지 않는다
   if [ -f "$STATE/managed.list" ]; then
     grep '^agents/' "$STATE/managed.list" | while IFS='|' read -r _k _d; do
+      case $_k in agents/qa-*) [ "$HAVE_NODE" = 1 ] || continue ;; esac
       grep -qxF "$_k" "$WORK/agents" || retire_managed "$_k" "$_d"
     done
   fi
-  if [ "$_n" = 0 ]; then add_skip "qa 에이전트" "원본에 파일 없음"; return 0; fi
-  if [ "$_changed" = 0 ]; then add_same "qa 에이전트 ${_n}개 ($CODEX_DIR/agents)"
-  else add_done "qa 에이전트 ${_n}개 중 ${_changed}개 ($CODEX_DIR/agents)"; fi
+  if [ "$_n" = 0 ]; then add_skip "에이전트 역할" "원본에 파일 없음"; return 0; fi
+  if [ "$_changed" = 0 ]; then add_same "에이전트 역할 ${_n}개 ($CODEX_DIR/agents)"
+  else add_done "에이전트 역할 ${_n}개 중 ${_changed}개 ($CODEX_DIR/agents)"; fi
 }
 
 install_node_skills() {
@@ -808,8 +788,7 @@ main() {
   install_agents_md
   install_hooks
   install_external
-  install_config
-  install_qa_agents
+  install_agents
   install_node_skills
   install_githooks
   install_uninstaller

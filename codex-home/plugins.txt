@@ -13,14 +13,18 @@
 # claude-plugins-official 의 superpowers 는 plugin 원본을 다시 git clone 하므로 git 이 있을 때만 씀.
 # claude-plugins-official 의 chrome-devtools-mcp 는 Codex 0.164.0 에서 설치되지 않음(원본 plugin.json 이름이 chrome-devtools).
 # 그래서 원본 레포를 harness-ext 로 감싸 설치하고, 예전에 설치한 것은 detect 줄로 알아봄.
+# 화면이 없는 Linux 서버에서는 install.sh 가 chrome-devtools-mcp 를 --headless 로 띄우게 고쳐 설치함.
+# context7 은 원격 MCP 라 node 가 필요 없고, 쓰려면 codex mcp login context7 로 로그인해야 함.
+#
+# 넣지 않는 것(Codex 0.164.0 에서 확인)
+#   skill-creator(claude-plugins-official): Codex 기본 skill-creator 와 둘 다 목록에 실리고, 설명 최적화 스크립트가 claude -p 를 부름
+#   code-simplifier(claude-plugins-official): Claude 형식 에이전트 파일뿐이라 Codex 가 읽지 않음. codex-home/agents/code-simplifier.toml 이 대신함
 
 superpowers             superpowers@openai-curated                  builtin      -                                                       -
 superpowers             superpowers@claude-plugins-official         marketplace  https://github.com/anthropics/claude-plugins-official.git   git
 superpowers             superpowers@harness-ext                     plugin       https://github.com/obra/superpowers.git                 -
 andrej-karpathy-skills  andrej-karpathy-skills@karpathy-skills      marketplace  https://github.com/forrestchang/andrej-karpathy-skills.git  -
-code-simplifier         code-simplifier@claude-plugins-official     marketplace  https://github.com/anthropics/claude-plugins-official.git   -
 frontend-design         frontend-design@claude-plugins-official     marketplace  https://github.com/anthropics/claude-plugins-official.git   -
-skill-creator           skill-creator@claude-plugins-official       marketplace  https://github.com/anthropics/claude-plugins-official.git   -
-context7                context7@claude-plugins-official            marketplace  https://github.com/anthropics/claude-plugins-official.git   node
+context7                context7@claude-plugins-official            marketplace  https://github.com/anthropics/claude-plugins-official.git   -
 chrome-devtools-mcp     chrome-devtools-mcp@claude-plugins-official detect       -                                                       -
 chrome-devtools-mcp     chrome-devtools@harness-ext                 plugin       https://github.com/ChromeDevTools/chrome-devtools-mcp.git  node,chrome

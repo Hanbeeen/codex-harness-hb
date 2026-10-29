@@ -1,4 +1,4 @@
-> **Codex 에게**: 이 레포 설치를 요청받으면 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.0/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
+> **Codex 에게**: 이 레포 설치를 요청받으면 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.1/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
 > 네트워크나 홈 폴더(`~/.codex`) 쓰기가 막혀 실패하면 권한 상승을 요청해 같은 명령을 다시 실행한다. 설치 단계를 나눠 직접 수행하지 않는다.
 > 출력 마지막의 `==== 하네스 설치 요약` 블록을 고치지 말고 사용자에게 그대로 전한다.
 > 출력에 `MERGE_NEEDED <경로>` 줄이 있을 때만 아래 '훅 병합 기준' 대로 그 파일을 직접 합친다. 다른 파일은 손대지 않는다.
@@ -15,12 +15,18 @@ Codex CLI 용 개발 작업 하네스. 전역 지침, 스킬, 매 턴 리마인�
 | 스킬 plugin `harness` (commit, check, pr-draft, patchnote) | 로컬 마켓플레이스 `codex-harness` | 항상 |
 | 스킬 recommit, qa(qa 엔진 포함) | `~/.agents/skills/` | node 가 있을 때 |
 | 리마인더 훅(UserPromptSubmit) | `~/.codex/hooks.json` | 파일이 없을 때 배치. 있으면 `MERGE_NEEDED` |
-| `project_doc_max_bytes = 65536` | `~/.codex/config.toml` | 값이 없거나 더 작을 때만 |
-| 외부 plugin: superpowers, andrej-karpathy-skills, code-simplifier, frontend-design, skill-creator | Codex plugin | 항상(실패하면 건너뜀) |
-| 외부 plugin: context7 | Codex plugin | node 가 있을 때 |
-| 외부 plugin: chrome-devtools-mcp | Codex plugin | node 와 Chrome 이 있을 때 |
+| 외부 plugin: superpowers, andrej-karpathy-skills, frontend-design | Codex plugin | 항상(실패하면 건너뜀) |
+| 외부 plugin: context7(원격 MCP) | Codex plugin | 항상. 쓰려면 `codex mcp login context7` |
+| 외부 plugin: chrome-devtools-mcp | Codex plugin | node 와 Chrome 이 있을 때. 화면 없는 Linux 서버면 `--headless` 로 띄움 |
+| code-simplifier 역할 에이전트 | `~/.codex/agents/code-simplifier.toml` | 항상 |
 | qa 에이전트 | `~/.codex/agents/qa-*.toml` | node 가 있을 때 |
 | commit-msg git 훅 | 전역 `core.hooksPath` = `~/.codex/harness/githooks` | node 와 git 이 있을 때 |
+
+Codex 에 맞춘 점(Codex 0.164.0 에서 확인):
+- skill-creator 는 Codex 기본 스킬을 쓴다. Claude 용 plugin 을 함께 넣으면 같은 이름이 두 번 실리고, 설명 최적화 스크립트가 `claude -p` 를 부른다.
+- Claude 용 code-simplifier plugin 은 에이전트 형식이라 Codex 가 읽지 않는다. 같은 역할을 Codex 역할 파일로 넣는다.
+- 전역 지침이 32 KiB 를 넘어도 `~/.codex/AGENTS.md` 는 끝까지 실려서 `config.toml` 은 고치지 않는다.
+- Codex 는 세션 시작 때 '먼저 스킬을 써라' 지시가 없어서, 지침 끝 'Codex: 스킬 우선 사용' 절과 리마인더 `[스킬]` 줄이 대신한다.
 
 하네스 전용 파일은 `~/.codex/harness/` 아래에 있다(원본 `src/<tag>`, 백업 `backup/<시각>`, `reminder.json`, 병합용 `hooks.json`, `githooks`, 설치 기록 `state`). 나머지 설치 위치는 위 표와 같다.
 
@@ -46,6 +52,7 @@ Codex CLI 용 개발 작업 하네스. 전역 지침, 스킬, 매 턴 리마인�
 - 같은 태그로 다시 실행하면 바뀌는 것이 없다(요약에 '변경 없음' 으로 나옴).
 - 외부 plugin 은 처음 설치할 때만 받는다. 다시 실행하거나 업그레이드해도 갱신되지 않으므로, 갱신은 Codex 의 `codex plugin marketplace upgrade` 로 한다.
 - 업그레이드는 새 태그 주소의 `install.sh` 를 실행한다. 지난 태그 원본은 지운다.
+- 목록에서 빠진 외부 plugin 은 업그레이드 때 지우지 않는다. v0.1.0 에서 올렸다면 `codex plugin remove skill-creator@claude-plugins-official`, `codex plugin remove code-simplifier@claude-plugins-official` 로 직접 지운다. v0.1.0 이 넣은 `project_doc_max_bytes` 는 `uninstall.sh` 가 되돌린다.
 - 훅 내용이 바뀌면 codex 를 다시 켠 뒤 `/hooks` 에서 다시 승인해야 실행된다.
 - 제거: `sh ~/.codex/harness/uninstall.sh` (`--dry` 지원). 하네스가 추가한 plugin, 마켓플레이스, 파일을 지우고 설치 때 받아 둔 백업과 `core.hooksPath` 이전 값을 되돌린다. 백업 폴더는 남긴다.
 - 하네스가 등록한 마켓플레이스(예: `claude-plugins-official`)는 제거 때 함께 지운다. 그 뒤 같은 마켓플레이스에서 직접 설치한 plugin 이 있으면 다시 등록해야 한다.
