@@ -1,4 +1,6 @@
-> **Codex 에게**: 이 레포 설치를 요청받으면 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
+> 관리형 과제나 대회 환경에서 사용할 때는 [대회용 준비물](contest-kit/README.md)을 먼저 읽고 해당 경로만 적용함. 이 경우 아래 일반 설치 명령과 루트 install.sh는 실행하지 않음.
+
+> **Codex에게**: 개인 PC의 일반 전역 설치를 명시적으로 요청받은 경우에만 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
 > 네트워크나 홈 폴더(`~/.codex`) 쓰기가 막혀 실패하면 권한 상승을 요청해 같은 명령을 다시 실행한다. 설치 단계를 나눠 직접 수행하지 않는다.
 > 출력 마지막의 `==== 하네스 설치 요약` 블록을 고치지 말고 사용자에게 그대로 전한다.
 > 출력에 `MERGE_NEEDED <경로>` 줄이 있을 때만 아래 '훅 병합 기준' 대로 그 파일을 직접 합친다. 다른 파일은 손대지 않는다.
