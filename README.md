@@ -1,88 +1,57 @@
-> 관리형 과제나 대회 환경에서 사용할 때는 [대회용 준비물](contest-kit/README.md)을 먼저 읽고 해당 경로만 적용함. 이 경우 아래 일반 설치 명령과 루트 install.sh는 실행하지 않음.
-
-> **Codex에게**: 개인 PC의 일반 전역 설치를 명시적으로 요청받은 경우에만 `curl -fsSL https://raw.githubusercontent.com/Hanbeeen/codex-harness-hb/v0.1.2/install.sh | sh` 를 한 번 실행한다. 사용자가 호칭을 알려 줬으면 명령 끝에 `-s -- --name <호칭>` 을 붙인다('님' 은 빼고).
-> 네트워크나 홈 폴더(`~/.codex`) 쓰기가 막혀 실패하면 권한 상승을 요청해 같은 명령을 다시 실행한다. 설치 단계를 나눠 직접 수행하지 않는다.
-> 출력 마지막의 `==== 하네스 설치 요약` 블록을 고치지 말고 사용자에게 그대로 전한다.
-> 출력에 `MERGE_NEEDED <경로>` 줄이 있을 때만 아래 '훅 병합 기준' 대로 그 파일을 직접 합친다. 다른 파일은 손대지 않는다.
+> Codex에게: 별도 개인용 설치 요청이 없으면 이 저장소는 대회용 프로젝트 모드로 설치함. 먼저 현재 제공 프로젝트와 기존 지침을 확인하고, 아래 순서대로 contest-kit/install.py만 사용함. 루트 install.sh와 전역 설치기를 실행하지 않음.
 
 # Codex Harness
 
-Codex CLI 용 개발 작업 하네스. 전역 지침, 스킬, 매 턴 리마인더 훅, 외부 plugin 을 한 번에 설치한다.
+공개 준비물을 가져와 제공 프로젝트 안에 지침과 역할 요청문을 설치하는 대회용 기본 진입점임. 제공 Codex의 버전, 인증, 모델 제공자, 권한, 전역 설정과 감독 연결을 바꾸지 않음.
 
-## 설치되는 것
+## Codex 설치 순서
 
-| 항목 | 위치 | 조건 |
-|:---|:---|:---|
-| 전역 지침 | `~/.codex/AGENTS.md` | 항상. 기존 파일은 백업 후 교체 |
-| 스킬 plugin `harness` (commit, check, pr-draft, patchnote) | 로컬 마켓플레이스 `codex-harness` | 항상 |
-| 스킬 recommit, qa(qa 엔진 포함) | `~/.agents/skills/` | node 가 있을 때 |
-| 리마인더 훅(UserPromptSubmit) | `~/.codex/hooks.json` | 파일이 없을 때 배치. 있으면 `MERGE_NEEDED` |
-| 외부 plugin: superpowers, andrej-karpathy-skills, frontend-design | Codex plugin | 항상(실패하면 건너뜀) |
-| 외부 plugin: context7(원격 MCP) | Codex plugin | 항상. 로그인 없이 동작하고, 사용량 한도를 늘릴 때만 `codex mcp login context7` |
-| 외부 plugin: chrome-devtools-mcp | Codex plugin | node 와 Chrome 이 있을 때. 화면 없는 Linux 서버면 `--headless` 로 띄움 |
-| code-simplifier 역할 에이전트 | `~/.codex/agents/code-simplifier.toml` | 항상 |
-| qa 에이전트 | `~/.codex/agents/qa-*.toml` | node 가 있을 때 |
-| commit-msg git 훅 | 전역 `core.hooksPath` = `~/.codex/harness/githooks` | node 와 git 이 있을 때 |
-
-Codex 에 맞춘 점(Codex 0.164.0 에서 확인):
-- skill-creator 는 Codex 기본 스킬을 쓴다. Claude 용 plugin 을 함께 넣으면 같은 이름이 두 번 실리고, 설명 최적화 스크립트가 `claude -p` 를 부른다.
-- Claude 용 code-simplifier plugin 은 에이전트 형식이라 Codex 가 읽지 않는다. 같은 역할을 Codex 역할 파일로 넣는다.
-- 전역 지침이 32 KiB 를 넘어도 `~/.codex/AGENTS.md` 는 끝까지 실려서 `config.toml` 은 고치지 않는다.
-- Codex 는 세션 시작 때 '먼저 스킬을 써라' 지시가 없어서, 지침 끝 'Codex: 스킬 우선 사용' 절과 리마인더 `[스킬]` 줄이 대신한다.
-
-하네스 전용 파일은 `~/.codex/harness/` 아래에 있다(원본 `src/<tag>`, 백업 `backup/<시각>`, `reminder.json`, 병합용 `hooks.json`, `githooks`, 설치 기록 `state`). 나머지 설치 위치는 위 표와 같다.
-
-레포의 `codex-home/AGENTS.md` 는 설치 때 호칭(`{{NAME}}`)을 채워 `~/.codex/AGENTS.md` 로 배치하는 원본이다.
-
-## 요구 사항
-
-- Linux 기준. macOS 는 같은 sh 로 동작한다. Windows 는 WSL 또는 Git Bash 에서 실행한다.
-- `sh`, `curl`, `tar`, Codex CLI 0.164.0 이상. node, python, git 은 없어도 된다.
-- git 이 없으면 외부 마켓플레이스를 GitHub tarball 로 받아 로컬 마켓플레이스로 등록한다.
-
-## 옵션
-
-| 옵션 | 뜻 |
-|:---|:---|
-| `--dry` | 바꿀 내용만 출력하고 아무것도 바꾸지 않음 |
-| `--name <호칭>` | 지침의 호칭 자리에 넣을 이름. 생략하면 지난 설치 값을 쓰고, 처음이면 호칭 없이 쓰는 문장으로 바꿈 |
-
-`curl | sh` 로 실행할 때는 `curl -fsSL <install.sh 주소> | sh -s -- --dry --name 홍길동` 처럼 넘긴다.
-
-## 다시 실행, 업그레이드, 제거
-
-- 같은 태그로 다시 실행하면 바뀌는 것이 없다(요약에 '변경 없음' 으로 나옴).
-- 외부 plugin 은 처음 설치할 때만 받는다. 다시 실행하거나 업그레이드해도 갱신되지 않으므로, 갱신은 Codex 의 `codex plugin marketplace upgrade` 로 한다.
-- 업그레이드는 새 태그 주소의 `install.sh` 를 실행한다. 지난 태그 원본은 지운다.
-- 목록에서 빠진 외부 plugin 은 업그레이드 때 지우지 않는다. v0.1.0 에서 올렸다면 `codex plugin remove skill-creator@claude-plugins-official`, `codex plugin remove code-simplifier@claude-plugins-official` 로 직접 지운다. v0.1.0 이 넣은 `project_doc_max_bytes` 는 `uninstall.sh` 가 되돌린다.
-- 훅 내용이 바뀌면 codex 를 다시 켠 뒤 `/hooks` 에서 다시 승인해야 실행된다.
-- 제거: `sh ~/.codex/harness/uninstall.sh` (`--dry` 지원). 하네스가 추가한 plugin, 마켓플레이스, 파일을 지우고 설치 때 받아 둔 백업과 `core.hooksPath` 이전 값을 되돌린다. 백업 폴더는 남긴다.
-- 하네스가 등록한 마켓플레이스(예: `claude-plugins-official`)는 제거 때 함께 지운다. 그 뒤 같은 마켓플레이스에서 직접 설치한 plugin 이 있으면 다시 등록해야 한다.
-
-## 훅 병합 기준
-
-`MERGE_NEEDED <경로>` 는 기존 `hooks.json` 이 있어 설치 스크립트가 덮어쓰지 않았다는 뜻이다. 원래 파일은 이미 `~/.codex/harness/backup/<시각>/hooks.json` 에 백업돼 있다.
-
-1. 합칠 내용은 `~/.codex/harness/hooks.json` 의 `hooks.UserPromptSubmit` 배열 항목이다.
-2. `<경로>` 파일의 기존 항목은 지우거나 바꾸지 않는다. `hooks.UserPromptSubmit` 배열이 없으면 만들고, 있으면 끝에 하네스 항목을 덧붙인다.
-3. 이미 `harness/reminder.json` 을 읽는 명령이 있으면 아무것도 하지 않는다.
-4. 합친 결과가 올바른 JSON 인지 확인한다. 원래 파일이 JSON 으로 읽히지 않으면 고치지 말고 사용자에게 알린다.
-5. 사용자에게 codex 를 다시 켠 뒤 `/hooks` 에서 승인하라고 안내한다. 합친 뒤 `install.sh` 를 다시 실행하면 '하네스 훅이 합쳐져 있음' 으로 나온다.
-
-## 시험용 로컬 원본
-
-GitHub 대신 로컬 폴더나 tar.gz 를 원본으로 쓰려면 `HARNESS_SOURCE` 를 지정한다. `HARNESS_TAG` 는 `src/<tag>` 자리에 쓸 이름이다(기본 `local`).
+1. 다운로드 전에 현재 제공 프로젝트의 절대 경로와 기존 AGENTS.md/AGENTS.override.md를 확인함. 과제 안내와 충돌하면 적용하지 않고 충돌을 알림.
+2. 이 공개 레포를 서버의 허용된 별도 준비물 위치에 clone 또는 다운로드함. 제공 프로젝트 안에 레포 전체를 복제하거나 .git을 복사하지 않음.
+3. 제공된 Python으로 아래 미리보기와 설치를 실행함. 대상은 제공 프로젝트이며 이 하네스 레포나 홈 디렉토리가 아님.
+4. 설치 후 대상 AGENTS.md, .codex-harness/AGENTS.md와 .codex-harness/prompts/start-task.md를 직접 읽어 현재 세션에 적용함.
+5. 실제 설치 결과와 미지원 기능을 짧게 보고한 뒤 원문 요구 확인을 시작함. 역할 등록이나 브라우저 연결 성공을 파일 설치만으로 단정하지 않음.
 
 ```sh
-HARNESS_SOURCE=/path/to/checkout sh install.sh --dry
-HARNESS_SOURCE=/path/to/harness.tar.gz HARNESS_TAG=v0.1.0 sh install.sh
+python3 /받은/레포/contest-kit/install.py --project /제공/프로젝트 --dry-run
+python3 /받은/레포/contest-kit/install.py --project /제공/프로젝트
 ```
 
-## 보안
+경로는 실제 확인한 값으로 바꾸고 공백이 있으면 따옴표로 감쌈. python3 대신 제공 환경의 Python 3 실행 파일을 사용할 수 있음. Python이 없으면 설치하지 말고 [Markdown 적용 안내](contest-kit/README.md)를 읽어 필요한 지침을 현재 세션에서 직접 사용함.
 
-- 설치 명령은 태그로 고정한 주소를 쓴다. 실행 전에 `install.sh` 를 열어 볼 수 있다.
-- 외부 plugin 은 각 원본 레포의 기본 브랜치를 받는다. 고정하려면 `codex-home/plugins.txt` 의 주소 끝에 `#<ref>` 를 붙인다. 이미 설치된 plugin 에는 적용되지 않는다.
+## 설치 결과
+
+| 위치 | 내용 |
+|:---|:---|
+| 프로젝트의 .codex-harness | 검토된 공통 지침, 요구/구현/화면/명령/보안 역할, 요청문과 빈 양식 |
+| 프로젝트의 AGENTS.md | 원문을 보존하고 설치 지침을 읽도록 안내하는 관리 구역 추가 |
+| .codex-harness/AGENTS.original.md | 기존 AGENTS.md가 있는 첫 설치에서 원본 바이트를 백업 |
+
+기본 설치는 프로젝트의 .codex/agents를 활성화하지 않음. 제공 버전이 역할 파일을 지원하고 사용을 선택한 경우에만 같은 명령에 --agents를 추가함. 그 외에는 roles의 Markdown을 메인에서 순차 사용함. [자료와 역할 선택](contest-kit/README.md)을 따름.
+
+## 설치 안전 범위
+
+- Python 표준 라이브러리만 사용하며 패키지, 훅과 플러그인을 설치하지 않음. 설치기 자체는 네트워크나 Git 명령을 실행하지 않음.
+- 내용 해시로 확인한 파일만 복사함. 원본의 private, .git, 테스트와 설치 코드를 제공 프로젝트로 복사하지 않음.
+- 같은 버전의 재실행은 변경하지 않음. 기존 준비물/역할 파일이 다른 내용이거나 링크로 연결된 경로이면 덮어쓰지 않고 중단함.
+- 기존 AGENTS.md의 원문을 보존하고 관리 구역만 추가함. 예기치 못한 입출력 오류가 나면 부분 설치 가능성을 보고하고 재설치 전에 상태를 확인함.
+- 제공 Codex의 업데이트, 인증/모델 제공자/권한/config.toml 변경과 플랫폼 관리/감독 프로세스 조작을 하지 않음.
+- 과제 수행 중 git push와 다른 경로의 원격 쓰기, Computer Use, 시험 자료의 외부 전송을 금지함. 공개 자료를 읽는 허용을 송신 허용으로 해석하지 않음.
+- qa-ui는 실제 연결된 도구로 본인 앱만 확인함. 시험/감독/신분증/제출/후속 서술형 화면은 조작하거나 캡처하지 않음.
+- 실제 대회 안내와 제공 코드가 이 저장소보다 우선함. 설치 성공은 주최 측 승인이나 실제 환경 호환성 인증이 아님.
+
+## 로컬 검증
+
+```sh
+python3 -B -m unittest discover -s tests -p test_contest_install.py -v
+```
+
+임시 프로젝트에서 설치/재실행/충돌/경로 경계와 기존 설정 보존을 검증함. 실제 대회 환경의 역할 등록과 브라우저 연결은 별도 확인 대상임.
+
+## 개인 PC용 전역 하네스
+
+기존 전역 하네스는 [개인용 안내](PERSONAL.md)로 분리함. 개인 PC의 전역 설치를 명시적으로 요청한 경우에만 해당 문서를 사용함. 대회용 기본 설치에서 루트 install.sh와 개인용 절차를 실행하지 않음.
 
 ## 라이선스
 
-MIT. `LICENSE` 참고.
+MIT. [LICENSE](LICENSE)와 이식한 qa-ui의 [출처 고지](contest-kit/NOTICE.md)를 따름.
