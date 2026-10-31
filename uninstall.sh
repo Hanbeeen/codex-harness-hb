@@ -209,7 +209,8 @@ remove_owned() {
   add_done "지움: $H 아래 하네스 파일(backup 폴더는 남김)"
   is_dry && return 0
   rm -rf "$H/src" "$H/marketplaces" "$H/installed" "$H/githooks" \
-         "$H/reminder.json" "$H/hooks.json" "$H/uninstall.sh" "$STATE"
+         "$H/reminder.json" "$H/hooks.json" "$H/uninstall.sh" "$H/tools/check_korean_output.py" "$STATE"
+  rmdir "$H/tools" 2>/dev/null
   rmdir "$H" 2>/dev/null
   return 0
 }

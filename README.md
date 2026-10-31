@@ -42,8 +42,10 @@ python3 /받은/레포/contest-kit/install.py --project /제공/프로젝트
 
 ## 로컬 검증
 
+한국어 출력 정책은 contest-kit/korean-output.md가 정본임. 설치 결과의 프로젝트 AGENTS.md 본문에 포함되며 진행 보고, 문서, 화면 문구와 새 한국어 주석에 적용함. 문자 검사기는 파일이나 표준 입력을 읽기만 하며 자동 훅과 외부 윤문 서비스는 설치하지 않음.
+
 ```sh
-python3 -B -m unittest discover -s tests -p test_contest_install.py -v
+python3 -B -m unittest discover -s tests -v
 ```
 
 임시 프로젝트에서 설치/재실행/충돌/경로 경계와 기존 설정 보존을 검증함. 실제 대회 환경의 역할 등록과 브라우저 연결은 별도 확인 대상임.

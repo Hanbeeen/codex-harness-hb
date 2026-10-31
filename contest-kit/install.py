@@ -38,13 +38,15 @@ def read_assets(source):
     files = manifest.get("files")
     if manifest.get("version") != 1 or not isinstance(files, dict) or not 1 <= len(files) <= 64:
         raise ValueError("invalid asset manifest")
-    if not {"AGENTS.md", "README.md", "prompts/start-task.md"} <= files.keys():
+    if not {"AGENTS.md", "README.md", "prompts/start-task.md", "korean-output.md",
+            "tools/check_korean_output.py"} <= files.keys():
         raise ValueError("required assets missing from manifest")
     result = {}
     for name, expected in files.items():
         path = PurePosixPath(name)
         if (not name or path.as_posix() != name or "\\" in name or ":" in name or path.is_absolute()
-                or ".." in path.parts or path.suffix not in {".md", ".toml"}):
+                or ".." in path.parts
+                or (path.suffix not in {".md", ".toml"} and name != "tools/check_korean_output.py")):
             raise ValueError("invalid asset path")
         asset = source.joinpath(*path.parts)
         guard_path(source, asset)
@@ -68,6 +70,7 @@ def install(project, source, agents=False, dry_run=False):
             or any(project == path or path in project.parents for path in protected)):
         raise ValueError("project must be a separate provided project directory")
     assets = read_assets(source)
+    block = BLOCK.replace(END.encode(), assets["korean-output.md"].rstrip() + b"\n\n" + END.encode())
     pending, unchanged = [], []
 
     def queue(path, data):
@@ -91,21 +94,21 @@ def install(project, source, agents=False, dry_run=False):
     previous = instructions.read_bytes() if instructions.exists() else None
     replacement = None
     if previous is None:
-        queue(instructions, "# 프로젝트 협업 지침\n\n".encode("utf-8") + BLOCK)
+        queue(instructions, "# 프로젝트 협업 지침\n\n".encode("utf-8") + block)
     else:
         previous.decode("utf-8-sig")
         normalized = previous.replace(b"\r\n", b"\n")
         has_marker = START.encode() in normalized or END.encode() in normalized
         if has_marker:
             if (normalized.count(START.encode()) != 1 or normalized.count(END.encode()) != 1
-                    or BLOCK not in normalized):
+                    or block not in normalized):
                 raise ValueError("instruction block conflict")
             unchanged.append(instructions)
         else:
             queue(project / ".codex-harness/AGENTS.original.md", previous)
             newline = b"\r\n" if b"\r\n" in previous else b"\n"
             separator = newline if previous.endswith(b"\n") else newline * 2
-            replacement = previous + separator + BLOCK.replace(b"\n", newline)
+            replacement = previous + separator + block.replace(b"\n", newline)
 
     paths = [path.relative_to(project).as_posix() for path, _ in pending]
     updated = ["AGENTS.md"] if replacement is not None else []

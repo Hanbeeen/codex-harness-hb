@@ -230,6 +230,7 @@ fetch_source() {
   fi
   [ -n "$SRC_ROOT" ] || die "원본에 .agents/plugins/marketplace.json 이 없음"
   for _f in codex-home/AGENTS.md codex-home/hooks.json codex-home/reminder.json codex-home/plugins.txt \
+            contest-kit/korean-output.md contest-kit/tools/check_korean_output.py \
             plugins/harness/.codex-plugin/plugin.json; do
     [ -f "$SRC_ROOT/$_f" ] || die "원본에 $_f 가 없음"
   done
@@ -349,7 +350,10 @@ install_agents_md() {
   case "$NAME" in *'
 '*) die "--name 에 줄바꿈을 넣을 수 없음" ;; esac
   render_agents "$SRC_ROOT/codex-home/AGENTS.md" "$WORK/AGENTS.md" || die "AGENTS.md 를 만들지 못함"
+  printf '\n' >> "$WORK/AGENTS.md"
+  cat "$SRC_ROOT/contest-kit/korean-output.md" >> "$WORK/AGENTS.md" || die "한국어 출력 정책을 읽지 못함"
   place_managed AGENTS.md "$WORK/AGENTS.md" "$CODEX_DIR/AGENTS.md"
+  install_owned_file "$SRC_ROOT/contest-kit/tools/check_korean_output.py" "$H/tools/check_korean_output.py" "$H/tools/check_korean_output.py"
   if [ -n "$NAME" ]; then _who="호칭 $NAME 님"; else _who="호칭 없음"; fi
   if [ "$PLACED" = same ]; then add_same "$CODEX_DIR/AGENTS.md ($_who)"; else add_done "$CODEX_DIR/AGENTS.md ($_who)"; fi
   if ! is_dry; then

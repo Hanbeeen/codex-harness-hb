@@ -5,6 +5,8 @@
 
 # Codex Harness
 
+한국어 출력 정책은 contest-kit/korean-output.md를 정본으로 사용함. 이 저장소의 개인용 설치기는 정책을 전역 AGENTS.md 본문에 합치고 문자 검사기를 Codex 홈의 harness/tools/check_korean_output.py에 둠. 제공 Python으로 검사할 UTF-8 파일이나 표준 입력을 전달하며 자동 훅은 추가하지 않음. 기존 공개 태그에는 이 변경이 없으므로 이 버전은 체크아웃한 원본을 HARNESS_SOURCE로 지정해 설치하는 경우에 적용됨.
+
 Codex CLI 용 개발 작업 하네스. 전역 지침, 스킬, 매 턴 리마인더 훅, 외부 plugin 을 한 번에 설치한다.
 
 ## 설치되는 것

@@ -77,6 +77,33 @@ class ContestInstallTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)
         self.assertFalse((self.project / ".codex-harness").exists())
 
+    def test_installed_root_includes_policy_and_checker_runs(self):
+        self.success(self.run_install())
+        policy = KIT / "korean-output.md"
+        self.assertTrue(policy.is_file(), "공통 한국어 정책이 아직 없음")
+        self.assertIn(policy.read_bytes().replace(b"\r\n", b"\n"),
+                      (self.project / "AGENTS.md").read_bytes().replace(b"\r\n", b"\n"))
+        checker = self.project / ".codex-harness/tools/check_korean_output.py"
+        result = subprocess.run(
+            [sys.executable, "-X", "utf8", "-B", str(checker), "-"],
+            input="처리 \u5b8c\u4e86", capture_output=True, text=True, encoding="utf-8", timeout=10,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(json.loads(result.stdout)["findings"]), 2)
+
+    def test_unreviewed_python_asset_is_rejected_before_writes(self):
+        source = self.source_copy()
+        (source / "unexpected.py").write_text("raise SystemExit(0)\n", encoding="utf-8")
+        path = source / "assets.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["files"]["unexpected.py"] = hashlib.sha256(b"raise SystemExit(0)\n").hexdigest()
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        before = self.snapshot()
+        result = self.run_install(source=source)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("path", json.loads(result.stdout)["error"])
+        self.assertEqual(self.snapshot(), before)
+
     def test_second_install_is_idempotent(self):
         self.success(self.run_install())
         before = self.snapshot()
