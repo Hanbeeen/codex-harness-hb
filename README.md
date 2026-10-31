@@ -1,4 +1,4 @@
-> Codex에게: 설치 요청을 받으면 먼저 AGENTS.md와 이 문서를 읽음. 아래 환경 정보와 설치 목표를 기준으로 실제 버전, 권한과 경로를 확인하고 스킬, 훅과 플러그인을 각각 구성함. 시험 환경에서 루트 install.sh를 그대로 실행하지 않음.
+> Codex에게: 설치 요청을 받으면 먼저 AGENTS.md와 이 문서를 읽음. 아래 환경 정보와 설치 목표를 기준으로 실제 버전, 권한과 경로를 확인하고 스킬, 훅과 플러그인을 각각 구성함.
 
 # Codex Harness
 
@@ -28,7 +28,7 @@
 
 읽기 전용이거나 관리 정책이 막는 항목은 경로와 오류를 보고함. 권한 변경, 별도 CODEX_HOME, 새 인증이나 제공 도구 업데이트로 제한을 우회하지 않음. 미지원 스킬/역할은 Markdown 직접 읽기로 대체할 수 있지만 훅이나 플러그인까지 실행된 것으로 표시하지 않음.
 
-루트 install.sh는 개인용 전역 설치기이고 최소 버전이 0.164임. 시험용 Codex 0.163에서 실행하거나 최소 버전 검사만 낮추지 않음. contest-kit/install.py는 원본과 대상 프로젝트가 분리돼 있고 대상에 쓰기가 허용된 경우의 파일 복사 도구임. 클론 루트 자체나 그 상위 프로젝트를 대상으로 실행하지 말고 현장 Codex가 필요한 파일만 직접 배치함.
+고정 경로를 사용하는 자동 설치기는 포함하지 않음. 현장 Codex가 필요한 파일만 허용된 위치에 배치함.
 
 ## 플러그인 용도
 
@@ -52,7 +52,6 @@
 | codex-home/ | 개인용 전역 지침, 훅, 역할, 스킬과 Git 훅 원본. 시험에서는 필요한 내용과 플러그인 출처만 참고 |
 | plugins/harness/ | commit, check, pr-draft, patchnote 스킬을 담은 플러그인 원본. 해당 기능을 설치할 때 사용 |
 | .agents/plugins/ | 로컬 플러그인을 발견하기 위한 마켓플레이스 목록. 파일 존재와 플러그인 활성화는 별개 |
-| tests/ | 준비물 설치와 한국어 검사기의 로컬 회귀 테스트. 하네스를 수정한 뒤 실행 |
 | docs/ | 설계와 AI 협업 설명을 위한 사전 연습 자료. 프로젝트 설치 대상이 아님 |
 | .git/ | 저장소 이력과 원격 정보. 제공 프로젝트로 복사하지 않음 |
 
@@ -67,14 +66,10 @@ contest-kit 내부는 다음처럼 선택함.
 
 ## 검증과 참고
 
-```sh
-python3 -B -m unittest discover -s tests -v
-```
-
-위 명령은 기존 파일 설치기와 문자 검사기의 검증임. 시험 서버의 네이티브 스킬, 훅과 플러그인 설치를 인증하는 검사는 아님. 실제 환경 적용은 설치한 Codex가 별도로 확인함.
+설치한 스킬의 발견 여부, 훅의 실제 실행과 플러그인 도구 로딩을 현장에서 확인함. 한국어 문자 검사는 `python3 -X utf8 -B contest-kit/tools/check_korean_output.py 새문서.md`로 실행함. 개발용 테스트와 개인 PC용 설치/제거 스크립트는 포함하지 않음.
 
 Codex 0.163의 [프로젝트 스킬 검색](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/ext/skills/src/host_roots.rs), [훅 로딩과 신뢰 검사](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/hooks/src/engine/discovery.rs)를 참고함. 최신 문서의 모든 기능을 제공 버전과 동일시하지 않음.
 
-[설계와 AI 협업 설명 답안 템플릿](docs/post-task-answer-templates.md)은 사전 연습용임. 공식 기출이나 실제 수행 기록이 아님. 개인 PC에 전역 하네스를 설치할 때만 [PERSONAL.md](PERSONAL.md)를 따름.
+[설계와 AI 협업 설명 답안 템플릿](docs/post-task-answer-templates.md)은 사전 연습용임. 공식 기출이나 실제 수행 기록이 아님.
 
 MIT. [LICENSE](LICENSE)와 qa-ui의 [출처 고지](contest-kit/NOTICE.md)를 따름. git push, 다른 도구의 원격 쓰기와 시험 자료 반출은 금지함.
